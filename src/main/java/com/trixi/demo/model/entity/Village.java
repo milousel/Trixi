@@ -26,7 +26,7 @@ public class Village {
     private String transactionId;
     private String globalChangeProposalId;
     @OneToMany(mappedBy = "village")
-    private List<LinguisticCharacteristics> linguisticCharacteristics;
+    private List<LinguisticCharacteristic> linguisticCharacteristics;
     private String nutsLau;
     @OneToOne()
     private Geometry geometry;
