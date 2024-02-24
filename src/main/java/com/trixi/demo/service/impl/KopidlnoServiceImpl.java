@@ -137,7 +137,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 .item(0);
         log.info("geometryTagName: {}",element.getTagName());
         String nextPointLevelName = Constant.multiPointTag;
-        if(Objects.equals(element.getTagName(), Constant.villagePartRootTag)) {
+        if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
             nextPointLevelName = Constant.pointTag;
         }
         Element multiPointElement = (Element) definitionPointElement

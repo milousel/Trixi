@@ -6,7 +6,7 @@ public class Constant {
 
     //Tags
     public static final String villageRootTag = "vf:Obec";
-    public static final String villagePartRootTag = "vf:CastiObci";
+    public static final String districtRootTag = "vf:CastiObci";
     public static final String regionTag = "obi:Okres";
     public static final String regionCodeTag = "oki:Kod";
     public static final String pouTag = "obi:Pou";
