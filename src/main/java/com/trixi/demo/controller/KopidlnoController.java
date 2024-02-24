@@ -18,9 +18,4 @@ public class KopidlnoController {
         service.downloadData();
         return ResponseEntity.ok("je to v suchu");
     }
-    @PostMapping("/save")
-    public ResponseEntity save(@RequestBody Village village){
-        service.save(village);
-        return ResponseEntity.ok("hotovo");
-    }
 }
