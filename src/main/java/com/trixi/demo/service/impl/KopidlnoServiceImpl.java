@@ -94,10 +94,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             String pui = getTagValue("pui:Kod",(Element) pou);
             log.info("pui: {}", pui);
 
-
-
             //get LinguisticCharacteristics
-
             List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
             log.info("linguisticChars: {}", linguisticChars);
 
@@ -117,6 +114,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             village.setGlobalChangeProposalId(getTagValue("obi:GlobalniIdNavrhuZmeny", element));
             village.setLinguisticCharacteristics(linguisticChars);
             village.setNutsLau(getTagValue("obi:NutsLau", element));
+            village.setGeometry(geometry);
         }
         return village;
     }
