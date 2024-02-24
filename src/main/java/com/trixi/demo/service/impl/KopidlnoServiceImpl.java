@@ -33,8 +33,10 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     private final GeometryPointRepository geometryPointRepository;
     private final DistrictRepository districtRepository;
 
-    public void downloadData() {
-        List<LinguisticCharacteristic> linguisticCharacteristics = new ArrayList<>();
+    /***
+     * Main method for upload data from xml into database
+     */
+    public void uploadDataFromXml() {
         try {
             BufferedInputStream in = new BufferedInputStream(new URL(Constant.baseURL).openStream());
             Document document = getDocument(in);
@@ -58,6 +60,11 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             throw new RuntimeException(e);
         }
     }
+
+    /***
+     * Method for save District into database
+     * @param district
+     */
     private void saveDistrictToDB(District district) {
         GeometryMultiPoint multiPoint = district.getGeometry().getMultiPoint();
         geometryMultiPointRepository.save(multiPoint);
@@ -74,6 +81,11 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         }
         linguisticCharacteristicRepository.saveAll(district.getLinguisticCharacteristics());
     }
+
+    /***
+     * Method for saving village into database
+     * @param village
+     */
     private void saveVillageToDB(Village village) {
         GeometryMultiPoint multiPoint = village.getGeometry().getMultiPoint();
         geometryMultiPointRepository.save(multiPoint);
@@ -91,14 +103,10 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         linguisticCharacteristicRepository.saveAll(village.getLinguisticCharacteristics());
     }
     private Document getDocument(BufferedInputStream input) throws IOException, ParserConfigurationException, SAXException {
-        int BUFFER = 1024;
         ZipInputStream zis = new ZipInputStream(input);
         ZipEntry entry;
-        BufferedOutputStream dest;
         Document document = null;
         while ((entry = zis.getNextEntry()) != null) {
-            int count;
-            byte[] data = new byte[BUFFER];
 
             // create dirs to file
             String fileName = entry.getName();
@@ -118,6 +126,11 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         return document;
     }
 
+    /***
+     * Method for parse District object from Document.
+     * @param input
+     * @return District
+     */
     private District parseDistrict(Node input) {
         District district = new District();
         if (input.getNodeType() == Node.ELEMENT_NODE) {
@@ -126,15 +139,12 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             //get village data
             Node villageNode = element.getElementsByTagName(Constant.districtVillageTag).item(0);
             String villageCode = getTagValue(Constant.districtVillageCodeTag,(Element) villageNode);
-            log.info("villageCode: {}", villageCode);
 
             //get LinguisticCharacteristics
             List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
-            log.info("linguisticChars: {}", linguisticChars);
 
             //get Geometry
             Geometry geometry = getGeometry(element);
-            log.info("geometry: {}", geometry );
 
             // set district
             district.setDistrictId(element.getAttribute(Constant.idAtt));
@@ -149,6 +159,12 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         }
         return district;
     }
+
+    /***
+     * Method for parse Village object from Document.
+     * @param input
+     * @return Village
+     */
     private Village parseVillage(Node input){
         Village village = new Village();
         if (input.getNodeType() == Node.ELEMENT_NODE) {
@@ -157,20 +173,16 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             //get region data
             Node regionNode = element.getElementsByTagName(Constant.regionTag).item(0);
             String region = getTagValue(Constant.regionCodeTag,(Element) regionNode);
-            log.info("regionData: {}", region);
 
             //get Pou data
             Node pou = element.getElementsByTagName(Constant.pouTag).item(0);
             String pui = getTagValue(Constant.puiTag,(Element) pou);
-            log.info("pui: {}", pui);
 
             //get LinguisticCharacteristics
             List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
-            log.info("linguisticChars: {}", linguisticChars);
 
             //get Geometry
             Geometry geometry = getGeometry(element);
-            log.info("geometry: {}", geometry );
 
             // set village
             village.setVillageId(element.getAttribute(Constant.idAtt));
@@ -189,8 +201,15 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         return village;
     }
 
+    /***
+     * Parse Geometry object from village / district
+     * @param element
+     * @return Geometry
+     */
     private Geometry getGeometry(Element element) {
         Geometry geometry = new Geometry();
+
+        // set tag names for village / district element
         String firstLevelTagName = Constant.geometryTag;
         String secondLevelTagName = Constant.multiPointTag;
         String definitionTagName = Constant.definitionPointTag;
@@ -205,15 +224,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 .item(0);
         Element definitionPointElement = (Element) geometryElement.getElementsByTagName(definitionTagName)
                 .item(0);
-        log.info("geometryTagName: {}",element.getTagName());
-        /*
-        Element multiPointElement = (Element) definitionPointElement
-                .getElementsByTagName(secondLevelTagName).item(0);
-        multiPoint.setMultiPointId(multiPointElement.getAttribute(Constant.idAtt));
-        multiPoint.setName(multiPointElement.getAttribute(Constant.nameAtt));
-        multiPoint.setDimension(multiPointElement.getAttribute(Constant.dimensionAtt));
-
-         */
 
         List<GeometryPoint> geometryPoints;
         if(Objects.equals(element.getTagName(), Constant.villageRootTag)) {
@@ -226,13 +236,18 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                     .item(0);
             geometryPoints = getGeometryPoints(pointMembersElement);
         } else {
-            log.info("multiPointElementName: {}", definitionPointElement.getTagName());
             geometryPoints = getGeometryPoints(definitionPointElement);
         }
         multiPoint.setPoints(geometryPoints);
         geometry.setMultiPoint(multiPoint);
         return geometry;
     }
+
+    /***
+     * Parse all geometryPoints
+     * @param element
+     * @return List<GeometryPoint>
+     */
     private List<GeometryPoint> getGeometryPoints(Element element) {
         List<GeometryPoint> geometryPoints = new ArrayList<>();
         Node current;
@@ -251,6 +266,11 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         return geometryPoints;
     }
 
+    /***
+     * Parse all LinguisticCharacteristics
+     * @param element
+     * @return List<LinguisticCharacteristic>
+     */
     private List<LinguisticCharacteristic> getLinguisticCharacteristics(Element element) {
         String tagName = Constant.linguisticCharacteristicTag;
         if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
@@ -269,7 +289,14 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         }
         return linguisticChars;
     }
-    private static String getTagValue(String tag, Element element) {
+
+    /***
+     * Get value of tag from element
+     * @param tag
+     * @param element
+     * @return String
+     */
+    private String getTagValue(String tag, Element element) {
         NodeList nodeList = element.getElementsByTagName(tag).item(0).getChildNodes();
         Node node = nodeList.item(0);
         return node.getNodeValue();
