@@ -1,6 +1,5 @@
 package com.trixi.demo.controller;
 
-import com.trixi.demo.model.entity.Village;
 import com.trixi.demo.service.KopidlnoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +12,9 @@ public class KopidlnoController {
 
     private final KopidlnoService service;
 
-    @GetMapping("/downloadData")
-    public ResponseEntity<?> downloadData() {
-        service.downloadData();
-        return ResponseEntity.ok("je to v suchu");
+    @GetMapping("/uploadDataFromXml")
+    public ResponseEntity<?> uploadDataFromXml() {
+        service.uploadDataFromXml();
+        return ResponseEntity.ok("The data has been successfully saved.");
     }
 }
