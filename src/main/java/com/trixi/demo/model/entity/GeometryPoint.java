@@ -19,5 +19,5 @@ public class GeometryPoint {
     private String pointId;
     private String pos;
     @ManyToOne
-    private GeoemtryMultiPoint multiPoint;
+    private GeometryMultiPoint multiPoint;
 }

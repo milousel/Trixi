@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Entity(name = "geometry")
 @Data
 @NoArgsConstructor
@@ -17,5 +15,5 @@ public class Geometry {
     @GeneratedValue
     private int id;
     @OneToOne
-    private GeoemtryMultiPoint multiPoint;
+    private GeometryMultiPoint multiPoint;
 }

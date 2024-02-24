@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LinguisticCharacteristics {
+public class LinguisticCharacteristic {
 
     @Id
     @GeneratedValue

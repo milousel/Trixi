@@ -14,7 +14,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class GeoemtryMultiPoint {
+public class GeometryMultiPoint {
 
     @Id
     @GeneratedValue
