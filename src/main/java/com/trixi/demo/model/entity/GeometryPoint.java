@@ -18,6 +18,8 @@ public class GeometryPoint {
     private int id;
     private String pointId;
     private String pos;
+    private String name;
+    private String dimension;
     @ManyToOne
     private GeometryMultiPoint multiPoint;
 }
