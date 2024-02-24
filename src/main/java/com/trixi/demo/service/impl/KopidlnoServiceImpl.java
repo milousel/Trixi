@@ -1,7 +1,9 @@
 package com.trixi.demo.service.impl;
 
 import com.trixi.demo.constant.Constant;
-import com.trixi.demo.model.entity.LinguisticCharacteristics;
+import com.trixi.demo.model.entity.Geometry;
+import com.trixi.demo.model.entity.GeometryMultiPoint;
+import com.trixi.demo.model.entity.LinguisticCharacteristic;
 import com.trixi.demo.model.entity.Village;
 import com.trixi.demo.repository.VillageRepository;
 import com.trixi.demo.service.KopidlnoService;
@@ -16,10 +18,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -35,7 +35,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     }
 
     public void downloadData() {
-        List<LinguisticCharacteristics> linguisticCharacteristics = new ArrayList<>();
+        List<LinguisticCharacteristic> linguisticCharacteristics = new ArrayList<>();
         try {
             BufferedInputStream in = new BufferedInputStream(new URL(Constant.baseURL).openStream());
             unzipAndUse(in);
@@ -87,34 +87,42 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             Element element = (Element) input;
 
             //get region data
-            NodeList regionList = ((Element) input).getElementsByTagName("obi:Okres");
-            String region = getTagValue("oki:Kod",(Element) regionList.item(0));
+            Node regionNode = element.getElementsByTagName("obi:Okres").item(0);
+            String region = getTagValue("oki:Kod",(Element) regionNode);
             log.info("regionData: {}", region);
 
-            // get Pou data
-            NodeList pouList = ((Element) input).getElementsByTagName("obi:Pou");
-            String pui = getTagValue("pui:Kod",(Element) pouList.item(0));
+            //get Pou data
+            Node pou = element.getElementsByTagName("obi:Pou").item(0);
+            String pui = getTagValue("pui:Kod",(Element) pou);
             log.info("pui: {}", pui);
 
-            // get LinguisticCharacteristics
 
-            NodeList linguisticCharList = ((Element) input).getElementsByTagName("obi:MluvnickeCharakteristiky");
-            Node linguisticChar = linguisticCharList.item(0);
-            log.info("linguisticChar length: {}",linguisticChar.getChildNodes().getLength());
-            List<String> linguisticChars = new ArrayList<>();
-            for(int i=0; i < linguisticChar.getChildNodes().getLength();i++) {
-                Node itemNode = linguisticChar.getChildNodes().item(i);
-                if(itemNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element item = (Element) itemNode.getChildNodes().item(0);
-                    log.info("item name: {}", item.getNodeName());
-                    String linguistic = getTagValue("oki:Pad" + (i + 1), item);
-                    log.info("linguistic: {}", linguistic);
-                    linguisticChars.add(linguistic);
-                }
-            }
+
+            //get LinguisticCharacteristics
+
+            List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
             log.info("linguisticChars: {}", linguisticChars);
 
+            //get Geometry
+            Geometry geometry = getGeometry(element);
+            log.info("geometry: {}", geometry );
+            /*
+            GeometryMultiPoint multiPoint = new GeometryMultiPoint();
+            Element geometryElement = (Element) element.getElementsByTagName("obi:Geometrie")
+                    .item(0);
+            Element definitionPointElement = (Element) geometryElement.getElementsByTagName("obi:DefinicniBod")
+                    .item(0);
+            Element multiPointElement = (Element) definitionPointElement.getElementsByTagName("gml:MultiPoint")
+                    .item(0);
+            multiPoint.setMultiPointId(multiPointElement.getAttribute("gml:id"));
+            multiPoint.setName(multiPointElement.getAttribute("srsName"));
+            multiPoint.setDimension(multiPointElement.getAttribute("srsDimension"));
+            log.info("multiPoint: {}", multiPoint );
+
+             */
+
             // set village
+            village.setVillageId(element.getAttribute("gml:id"));
             village.setCode(getTagValue("obi:Kod", element));
             village.setName(getTagValue("obi:Nazev", element));
             village.setStatus(Integer.parseInt(getTagValue("obi:StatusKod", element)));
@@ -123,13 +131,51 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             village.setValidFrom(getTagValue("obi:PlatiOd", element));
             village.setTransactionId(getTagValue("obi:IdTransakce", element));
             village.setGlobalChangeProposalId(getTagValue("obi:GlobalniIdNavrhuZmeny", element));
-            //village.setGlobalChangeProposalId(getTagValue("obi:GlobalniIdNavrhuZmeny", element));
+            village.setLinguisticCharacteristics(linguisticChars);
+            village.setNutsLau(getTagValue("obi:NutsLau", element));
         }
         return village;
     }
+
+    private Geometry getGeometry(Element element) {
+        Geometry geometry = new Geometry();
+
+        //parse multiPoint attributes
+        GeometryMultiPoint multiPoint = new GeometryMultiPoint();
+        Element geometryElement = (Element) element.getElementsByTagName("obi:Geometrie")
+                .item(0);
+        Element definitionPointElement = (Element) geometryElement.getElementsByTagName("obi:DefinicniBod")
+                .item(0);
+        Element multiPointElement = (Element) definitionPointElement.getElementsByTagName("gml:MultiPoint")
+                .item(0);
+        multiPoint.setMultiPointId(multiPointElement.getAttribute("gml:id"));
+        multiPoint.setName(multiPointElement.getAttribute("srsName"));
+        multiPoint.setDimension(multiPointElement.getAttribute("srsDimension"));
+
+
+
+
+        geometry.setMultiPoint(multiPoint);
+        return geometry;
+    }
+
+    private List<LinguisticCharacteristic> getLinguisticCharacteristics(Element element) {
+        Node linguisticChar = element.getElementsByTagName("obi:MluvnickeCharakteristiky").item(0);
+        List<LinguisticCharacteristic> linguisticChars = new ArrayList<>();
+        Node current;
+        for (int i = 0; i < linguisticChar.getChildNodes().getLength(); i++) {
+            current = linguisticChar.getChildNodes().item(i);
+            if (current.getNodeType() == Node.ELEMENT_NODE) {
+                LinguisticCharacteristic linguisticCharacteristic = new LinguisticCharacteristic();
+                linguisticCharacteristic.setValue(current.getTextContent());
+                linguisticChars.add(linguisticCharacteristic);
+            }
+        }
+        return linguisticChars;
+    }
     private static String getTagValue(String tag, Element element) {
         NodeList nodeList = element.getElementsByTagName(tag).item(0).getChildNodes();
-        Node node = (Node) nodeList.item(0);
+        Node node = nodeList.item(0);
         return node.getNodeValue();
     }
 
