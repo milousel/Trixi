@@ -31,6 +31,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     private final GeometryRepository geometryRepository;
     private final GeometryMultiPointRepository geometryMultiPointRepository;
     private final GeometryPointRepository geometryPointRepository;
+    private final DistrictRepository districtRepository;
 
     public void downloadData() {
         List<LinguisticCharacteristic> linguisticCharacteristics = new ArrayList<>();
@@ -49,13 +50,29 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 Node node = districtsList.item(i);
                 District district = parseDistrict(node);
                 log.info("district: {}", district);
-                //saveVillageToDB(village);
+                saveDistrictToDB(district);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
         } catch (ParserConfigurationException | SAXException e) {
             throw new RuntimeException(e);
         }
+    }
+    private void saveDistrictToDB(District district) {
+        GeometryMultiPoint multiPoint = district.getGeometry().getMultiPoint();
+        geometryMultiPointRepository.save(multiPoint);
+        geometryRepository.save(district.getGeometry());
+        for (GeometryPoint point: multiPoint.getPoints()
+        ) {
+            point.setMultiPoint(multiPoint);
+        }
+        geometryPointRepository.saveAll(district.getGeometry().getMultiPoint().getPoints());
+        districtRepository.save(district);
+        for (LinguisticCharacteristic linguisticChar: district.getLinguisticCharacteristics()
+        ) {
+            linguisticChar.setDistrict(district);
+        }
+        linguisticCharacteristicRepository.saveAll(district.getLinguisticCharacteristics());
     }
     private void saveVillageToDB(Village village) {
         GeometryMultiPoint multiPoint = village.getGeometry().getMultiPoint();
@@ -179,7 +196,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         String definitionTagName = Constant.definitionPointTag;
         if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
             firstLevelTagName = Constant.districtGeometryTag;
-            secondLevelTagName = Constant.pointTag;
             definitionTagName = Constant.districtDefinitionTag;
         }
 
@@ -190,20 +206,28 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         Element definitionPointElement = (Element) geometryElement.getElementsByTagName(definitionTagName)
                 .item(0);
         log.info("geometryTagName: {}",element.getTagName());
+        /*
         Element multiPointElement = (Element) definitionPointElement
                 .getElementsByTagName(secondLevelTagName).item(0);
         multiPoint.setMultiPointId(multiPointElement.getAttribute(Constant.idAtt));
         multiPoint.setName(multiPointElement.getAttribute(Constant.nameAtt));
         multiPoint.setDimension(multiPointElement.getAttribute(Constant.dimensionAtt));
 
+         */
+
         List<GeometryPoint> geometryPoints;
         if(Objects.equals(element.getTagName(), Constant.villageRootTag)) {
+            Element multiPointElement = (Element) definitionPointElement
+                    .getElementsByTagName(secondLevelTagName).item(0);
+            multiPoint.setMultiPointId(multiPointElement.getAttribute(Constant.idAtt));
+            multiPoint.setName(multiPointElement.getAttribute(Constant.nameAtt));
+            multiPoint.setDimension(multiPointElement.getAttribute(Constant.dimensionAtt));
             Element pointMembersElement = (Element) geometryElement.getElementsByTagName(Constant.pointMembersTag)
                     .item(0);
             geometryPoints = getGeometryPoints(pointMembersElement);
         } else {
-            log.info("multiPointElementName: {}", multiPointElement.getTagName());
-            geometryPoints = getGeometryPoints(multiPointElement);
+            log.info("multiPointElementName: {}", definitionPointElement.getTagName());
+            geometryPoints = getGeometryPoints(definitionPointElement);
         }
         multiPoint.setPoints(geometryPoints);
         geometry.setMultiPoint(multiPoint);
