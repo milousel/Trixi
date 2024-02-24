@@ -1,10 +1,7 @@
 package com.trixi.demo.service.impl;
 
 import com.trixi.demo.constant.Constant;
-import com.trixi.demo.model.entity.Geometry;
-import com.trixi.demo.model.entity.GeometryMultiPoint;
-import com.trixi.demo.model.entity.LinguisticCharacteristic;
-import com.trixi.demo.model.entity.Village;
+import com.trixi.demo.model.entity.*;
 import com.trixi.demo.repository.VillageRepository;
 import com.trixi.demo.service.KopidlnoService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +17,7 @@ import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -106,20 +104,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             //get Geometry
             Geometry geometry = getGeometry(element);
             log.info("geometry: {}", geometry );
-            /*
-            GeometryMultiPoint multiPoint = new GeometryMultiPoint();
-            Element geometryElement = (Element) element.getElementsByTagName("obi:Geometrie")
-                    .item(0);
-            Element definitionPointElement = (Element) geometryElement.getElementsByTagName("obi:DefinicniBod")
-                    .item(0);
-            Element multiPointElement = (Element) definitionPointElement.getElementsByTagName("gml:MultiPoint")
-                    .item(0);
-            multiPoint.setMultiPointId(multiPointElement.getAttribute("gml:id"));
-            multiPoint.setName(multiPointElement.getAttribute("srsName"));
-            multiPoint.setDimension(multiPointElement.getAttribute("srsDimension"));
-            log.info("multiPoint: {}", multiPoint );
-
-             */
 
             // set village
             village.setVillageId(element.getAttribute("gml:id"));
@@ -146,17 +130,47 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 .item(0);
         Element definitionPointElement = (Element) geometryElement.getElementsByTagName("obi:DefinicniBod")
                 .item(0);
-        Element multiPointElement = (Element) definitionPointElement.getElementsByTagName("gml:MultiPoint")
-                .item(0);
+        log.info("geometryTagName: {}",element.getTagName());
+        String nextPointLevelName = Constant.multiPoint;
+        if(Objects.equals(element.getTagName(), Constant.villagePartRootTag)) {
+            nextPointLevelName = Constant.point;
+        }
+        Element multiPointElement = (Element) definitionPointElement
+                .getElementsByTagName(nextPointLevelName).item(0);
         multiPoint.setMultiPointId(multiPointElement.getAttribute("gml:id"));
         multiPoint.setName(multiPointElement.getAttribute("srsName"));
         multiPoint.setDimension(multiPointElement.getAttribute("srsDimension"));
 
-
+        List<GeometryPoint> geometryPoints;
+        if(Objects.equals(element.getTagName(), Constant.villageRootTag)) {
+            Element pointMembersElement = (Element) geometryElement.getElementsByTagName("gml:pointMembers")
+                    .item(0);
+            geometryPoints = getGeometryPoints(pointMembersElement);
+        } else {
+            geometryPoints = getGeometryPoints(multiPointElement);
+        }
+        multiPoint.setPoints(geometryPoints);
 
 
         geometry.setMultiPoint(multiPoint);
         return geometry;
+    }
+    private List<GeometryPoint> getGeometryPoints(Element element) {
+        List<GeometryPoint> geometryPoints = new ArrayList<>();
+        Node current;
+        for (int i = 0; i < element.getChildNodes().getLength(); i++) {
+            current = element.getChildNodes().item(i);
+            if (current.getNodeType() == Node.ELEMENT_NODE) {
+                Element point = (Element) element.getElementsByTagName("gml:Point").item(0);
+                GeometryPoint geometryPoint = new GeometryPoint();
+                geometryPoint.setPointId(point.getAttribute("gml:id"));
+                geometryPoint.setName(point.getAttribute("srsName"));
+                geometryPoint.setDimension(point.getAttribute("srsDimension"));
+                geometryPoint.setPos(getTagValue("gml:pos", point));
+                geometryPoints.add(geometryPoint);
+            }
+        }
+        return geometryPoints;
     }
 
     private List<LinguisticCharacteristic> getLinguisticCharacteristics(Element element) {
