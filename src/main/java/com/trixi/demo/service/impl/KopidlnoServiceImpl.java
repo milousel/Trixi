@@ -42,12 +42,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 Node node = villagesList.item(i);
                 Village village = parseVillage(node);
                 log.info("village: {}", village);
-                villageRepository.save(village);
-                for (LinguisticCharacteristic linguisticChar: village.getLinguisticCharacteristics()
-                     ) {
-                    linguisticChar.setVillage(village);
-                }
-                linguisticCharacteristicRepository.saveAll(village.getLinguisticCharacteristics());
+                saveVillageToDB(village);
             }
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -56,7 +51,20 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         }
     }
     private void saveVillageToDB(Village village) {
-
+        GeometryMultiPoint multiPoint = village.getGeometry().getMultiPoint();
+        geometryMultiPointRepository.save(multiPoint);
+        geometryRepository.save(village.getGeometry());
+        for (GeometryPoint point: multiPoint.getPoints()
+        ) {
+            point.setMultiPoint(multiPoint);
+        }
+        geometryPointRepository.saveAll(village.getGeometry().getMultiPoint().getPoints());
+        villageRepository.save(village);
+        for (LinguisticCharacteristic linguisticChar: village.getLinguisticCharacteristics()
+        ) {
+            linguisticChar.setVillage(village);
+        }
+        linguisticCharacteristicRepository.saveAll(village.getLinguisticCharacteristics());
     }
     private Document getDocument(BufferedInputStream input) throws IOException, ParserConfigurationException, SAXException {
         int BUFFER = 1024;
@@ -106,7 +114,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
 
             //get Geometry
             Geometry geometry = getGeometry(element);
-            geometryRepository.save(geometry);
             log.info("geometry: {}", geometry );
 
             // set village
@@ -154,10 +161,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         } else {
             geometryPoints = getGeometryPoints(multiPointElement);
         }
-        //geometryPointRepository.saveAll(geometryPoints);
         multiPoint.setPoints(geometryPoints);
-        geometryMultiPointRepository.save(multiPoint);
-        geometryPointRepository.saveAll(geometryPoints);
         geometry.setMultiPoint(multiPoint);
         return geometry;
     }
