@@ -20,4 +20,6 @@ public class LinguisticCharacteristic {
     private String value;
     @ManyToOne
     private Village village;
+    @ManyToOne
+    private District district;
 }

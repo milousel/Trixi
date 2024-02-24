@@ -44,6 +44,13 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                 log.info("village: {}", village);
                 saveVillageToDB(village);
             }
+            NodeList districtsList = document.getElementsByTagName(Constant.districtRootTag);
+            for(int i=0; i<districtsList.getLength();i++) {
+                Node node = districtsList.item(i);
+                District district = parseDistrict(node);
+                log.info("district: {}", district);
+                //saveVillageToDB(village);
+            }
         } catch (IOException e) {
             log.error(e.getMessage());
         } catch (ParserConfigurationException | SAXException e) {
@@ -93,6 +100,38 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         zis.close();
         return document;
     }
+
+    private District parseDistrict(Node input) {
+        District district = new District();
+        if (input.getNodeType() == Node.ELEMENT_NODE) {
+            Element element = (Element) input;
+
+            //get village data
+            Node villageNode = element.getElementsByTagName(Constant.districtVillageTag).item(0);
+            String villageCode = getTagValue(Constant.districtVillageCodeTag,(Element) villageNode);
+            log.info("villageCode: {}", villageCode);
+
+            //get LinguisticCharacteristics
+            List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
+            log.info("linguisticChars: {}", linguisticChars);
+
+            //get Geometry
+            Geometry geometry = getGeometry(element);
+            log.info("geometry: {}", geometry );
+
+            // set district
+            district.setDistrictId(element.getAttribute(Constant.idAtt));
+            district.setCode(getTagValue(Constant.districtCodeTag, element));
+            district.setName(getTagValue(Constant.districtNameTag, element));
+            district.setVillageCode(villageCode);
+            district.setValidFrom(getTagValue(Constant.districtValidFromTag, element));
+            district.setTransactionId(getTagValue(Constant.districtTransactionIdTag, element));
+            district.setGlobalChangeProposalId(getTagValue(Constant.districtGlobalChangeProposalIdTag, element));
+            district.setLinguisticCharacteristics(linguisticChars);
+            district.setGeometry(geometry);
+        }
+        return district;
+    }
     private Village parseVillage(Node input){
         Village village = new Village();
         if (input.getNodeType() == Node.ELEMENT_NODE) {
@@ -135,20 +174,24 @@ public class KopidlnoServiceImpl implements KopidlnoService {
 
     private Geometry getGeometry(Element element) {
         Geometry geometry = new Geometry();
+        String firstLevelTagName = Constant.geometryTag;
+        String secondLevelTagName = Constant.multiPointTag;
+        String definitionTagName = Constant.definitionPointTag;
+        if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
+            firstLevelTagName = Constant.districtGeometryTag;
+            secondLevelTagName = Constant.pointTag;
+            definitionTagName = Constant.districtDefinitionTag;
+        }
 
         //parse multiPoint attributes
         GeometryMultiPoint multiPoint = new GeometryMultiPoint();
-        Element geometryElement = (Element) element.getElementsByTagName(Constant.geometryTag)
+        Element geometryElement = (Element) element.getElementsByTagName(firstLevelTagName)
                 .item(0);
-        Element definitionPointElement = (Element) geometryElement.getElementsByTagName(Constant.definitionPointTag)
+        Element definitionPointElement = (Element) geometryElement.getElementsByTagName(definitionTagName)
                 .item(0);
         log.info("geometryTagName: {}",element.getTagName());
-        String nextPointLevelName = Constant.multiPointTag;
-        if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
-            nextPointLevelName = Constant.pointTag;
-        }
         Element multiPointElement = (Element) definitionPointElement
-                .getElementsByTagName(nextPointLevelName).item(0);
+                .getElementsByTagName(secondLevelTagName).item(0);
         multiPoint.setMultiPointId(multiPointElement.getAttribute(Constant.idAtt));
         multiPoint.setName(multiPointElement.getAttribute(Constant.nameAtt));
         multiPoint.setDimension(multiPointElement.getAttribute(Constant.dimensionAtt));
@@ -159,6 +202,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
                     .item(0);
             geometryPoints = getGeometryPoints(pointMembersElement);
         } else {
+            log.info("multiPointElementName: {}", multiPointElement.getTagName());
             geometryPoints = getGeometryPoints(multiPointElement);
         }
         multiPoint.setPoints(geometryPoints);
@@ -184,7 +228,11 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     }
 
     private List<LinguisticCharacteristic> getLinguisticCharacteristics(Element element) {
-        Node linguisticChar = element.getElementsByTagName(Constant.linguisticCharacteristicTag).item(0);
+        String tagName = Constant.linguisticCharacteristicTag;
+        if(Objects.equals(element.getTagName(), Constant.districtRootTag)) {
+            tagName = Constant.districtLinguisticCharacteristicTag;
+        }
+        Node linguisticChar = element.getElementsByTagName(tagName).item(0);
         List<LinguisticCharacteristic> linguisticChars = new ArrayList<>();
         Node current;
         for (int i = 0; i < linguisticChar.getChildNodes().getLength(); i++) {
