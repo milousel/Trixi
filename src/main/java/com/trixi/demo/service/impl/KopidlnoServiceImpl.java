@@ -36,7 +36,7 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     /***
      * Main method for upload data from xml into database
      */
-    public void uploadDataFromXml() {
+    public void saveDataFromXml() {
         try {
             BufferedInputStream in = new BufferedInputStream(new URL(Constant.baseURL).openStream());
             Document document = getDocument(in);
@@ -104,18 +104,8 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     }
     private Document getDocument(BufferedInputStream input) throws IOException, ParserConfigurationException, SAXException {
         ZipInputStream zis = new ZipInputStream(input);
-        ZipEntry entry;
         Document document = null;
-        while ((entry = zis.getNextEntry()) != null) {
-
-            // create dirs to file
-            String fileName = entry.getName();
-            log.info("fileName: {}", entry.getName());
-            File file = new File(fileName);
-            if (entry.isDirectory()) { //unzip only files
-                file.mkdir();
-                continue;
-            }
+        while (zis.getNextEntry() != null) {
             byte[] zipData = zis.readAllBytes();
             DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             //
@@ -136,17 +126,13 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         if (input.getNodeType() == Node.ELEMENT_NODE) {
             Element element = (Element) input;
 
-            //get village data
             Node villageNode = element.getElementsByTagName(Constant.districtVillageTag).item(0);
             String villageCode = getTagValue(Constant.districtVillageCodeTag,(Element) villageNode);
 
-            //get LinguisticCharacteristics
             List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
 
-            //get Geometry
             Geometry geometry = getGeometry(element);
 
-            // set district
             district.setDistrictId(element.getAttribute(Constant.idAtt));
             district.setCode(getTagValue(Constant.districtCodeTag, element));
             district.setName(getTagValue(Constant.districtNameTag, element));
@@ -170,21 +156,16 @@ public class KopidlnoServiceImpl implements KopidlnoService {
         if (input.getNodeType() == Node.ELEMENT_NODE) {
             Element element = (Element) input;
 
-            //get region data
             Node regionNode = element.getElementsByTagName(Constant.regionTag).item(0);
             String region = getTagValue(Constant.regionCodeTag,(Element) regionNode);
 
-            //get Pou data
             Node pou = element.getElementsByTagName(Constant.pouTag).item(0);
             String pui = getTagValue(Constant.puiTag,(Element) pou);
 
-            //get LinguisticCharacteristics
             List<LinguisticCharacteristic> linguisticChars = getLinguisticCharacteristics(element);
 
-            //get Geometry
             Geometry geometry = getGeometry(element);
 
-            // set village
             village.setVillageId(element.getAttribute(Constant.idAtt));
             village.setCode(getTagValue(Constant.villageCodeTag, element));
             village.setName(getTagValue(Constant.villageNameTag, element));
@@ -209,7 +190,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
     private Geometry getGeometry(Element element) {
         Geometry geometry = new Geometry();
 
-        // set tag names for village / district element
         String firstLevelTagName = Constant.geometryTag;
         String secondLevelTagName = Constant.multiPointTag;
         String definitionTagName = Constant.definitionPointTag;
@@ -218,7 +198,6 @@ public class KopidlnoServiceImpl implements KopidlnoService {
             definitionTagName = Constant.districtDefinitionTag;
         }
 
-        //parse multiPoint attributes
         GeometryMultiPoint multiPoint = new GeometryMultiPoint();
         Element geometryElement = (Element) element.getElementsByTagName(firstLevelTagName)
                 .item(0);

@@ -12,9 +12,9 @@ public class KopidlnoController {
 
     private final KopidlnoService service;
 
-    @GetMapping("/uploadDataFromXml")
-    public ResponseEntity<?> uploadDataFromXml() {
-        service.uploadDataFromXml();
+    @GetMapping("/saveDataFromXml")
+    public ResponseEntity<?> saveDataFromXml() {
+        service.saveDataFromXml();
         return ResponseEntity.ok("The data has been successfully saved.");
     }
 }

@@ -1,5 +1,5 @@
 package com.trixi.demo.service;
 public interface KopidlnoService {
 
-    void uploadDataFromXml();
+    void saveDataFromXml();
 }
